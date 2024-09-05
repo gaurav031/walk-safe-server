@@ -9,7 +9,6 @@ import 'dotenv/config';
 import postRoutes from './routes/posts.js';
 import userRoutes from './routes/users.js';
 
-
 // Get __dirname equivalent in ES modules
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +32,11 @@ const upload = multer({ storage });
 // Middleware
 app.use(express.json({ limit: '30mb' }));
 app.use(express.urlencoded({ limit: '30mb', extended: true }));
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000', // Update to your frontend URL
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  credentials: true,
+}));
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -42,13 +45,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/posts', postRoutes);
 app.use('/user', upload.single('picture'), userRoutes);
 
-
 app.get('/', (req, res) => {
   res.send('App is running');
 });
 
 // Connect to MongoDB
-const PORT =process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.CONNECTION_URL)
   .then(() => {
@@ -65,4 +67,10 @@ process.on('unhandledRejection', (error) => {
   console.error('Unhandled Rejection:', error.message);
   mongoose.disconnect();
   process.exit(1);
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err.message);
+  res.status(500).send('Internal Server Error');
 });
