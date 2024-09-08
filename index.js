@@ -34,7 +34,7 @@ const upload = multer({ storage });
 app.use(express.json({ limit: '30mb' }));
 app.use(express.urlencoded({ limit: '30mb', extended: true }));
 app.use(cors({
-  origin: 'https://walk-safe.netlify.app', // Update to your frontend URL
+  origin: 'https://walk-safe.netlify.app/', // Update to your frontend URL
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   credentials: true,
 }));
