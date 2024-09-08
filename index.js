@@ -8,6 +8,7 @@ import 'dotenv/config';
 
 import postRoutes from './routes/posts.js';
 import userRoutes from './routes/users.js';
+import newsRoutes from './routes/news.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = url.fileURLToPath(import.meta.url);
@@ -44,6 +45,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.use('/posts', postRoutes);
 app.use('/user', upload.single('picture'), userRoutes);
+// Use the news routes
+app.use('/api', newsRoutes);
 
 app.get('/', (req, res) => {
   res.send('App is running');
