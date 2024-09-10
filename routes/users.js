@@ -35,6 +35,6 @@ const upload = multer({
 })
 // Define routes
 router.post('/signin', signin);
-router.post('/signup', upload.single("photo"), signup);
+router.post('/signup', signup); // Use multer middleware
 router.patch('/user/:id/update', auth, upload.single('picture'), updateUser);
 export default router;
