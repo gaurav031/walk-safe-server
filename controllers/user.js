@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from '../models/users.js'; 
+import User from '../models/users.js';
+import cloudinary from '../helper/cloudinaryconfig.js';
 
 export const signin = async (req, res) => {
     const { email, password } = req.body;
@@ -22,8 +23,8 @@ export const signin = async (req, res) => {
 
 export const signup = async (req, res) => {
     const { email, password, firstName, lastName } = req.body;
-    const picturePath = req.file?.filename; // Ensure that req.file is available
-
+    //const picturePath = req.file?.filename; // Ensure that req.file is available
+    const picturePath = await cloudinary.uploader.upload(req.file.path); // Use req.file.path
     try {
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -36,12 +37,15 @@ export const signup = async (req, res) => {
             email,
             password: hashedPassword,
             name: `${firstName} ${lastName}`,
-            picturePath, // Save image path in the database
+            picturePath: picturePath.secure_url, // Save image path in the database
         });
+        console.log(result);
 
         const token = jwt.sign({ email: result.email, id: result._id }, 'test', { expiresIn: '1h' });
+        console.log(token);
+        // In the signup controller
+        res.status(201).json({ result: { ...result, picturePath: picturePath.secure_url }, token });
 
-        res.status(201).json({ result, token });
     } catch (error) {
         res.status(500).json({ message: 'Something went wrong!' });
     }
@@ -54,8 +58,8 @@ export const updateUser = async (req, res) => {
     const { name } = req.body;
 
     // Ensure picturePath is only set if a file is provided
-    const picturePath = req.file ? `/images/${req.file.filename}` : null;
-    
+    const picturePath = req.file ? (await cloudinary.uploader.upload(req.file.path)).secure_url : null;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(404).send(`No user exists with id: ${id}`);
     }

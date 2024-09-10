@@ -16,6 +16,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+
 // Configure multer for file storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -28,7 +29,19 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// img filter
+const isImage = (req,file,cb)=>{
+  if(file.mimetype.startsWith("image")){
+      cb(null,true)
+  }else{
+      cb(new Error("only images is allow"))
+  }
+}
+
+const upload = multer({
+  storage:storage,
+  fileFilter:isImage
+})
 
 // Middleware
 app.use(express.json({ limit: '30mb' }));

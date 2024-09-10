@@ -19,10 +19,22 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+// img filter
+const isImage = (req,file,cb)=>{
+  if(file.mimetype.startsWith("image")){
+      cb(null,true)
+  }else{
+      cb(new Error("only images is allow"))
+  }
+}
 
+
+const upload = multer({
+  storage:storage,
+  fileFilter:isImage
+})
 // Define routes
 router.post('/signin', signin);
-router.post('/signup', signup);
+router.post('/signup', upload.single("photo"), signup);
 router.patch('/user/:id/update', auth, upload.single('picture'), updateUser);
 export default router;
