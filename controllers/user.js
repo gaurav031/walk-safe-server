@@ -3,52 +3,79 @@ import jwt from "jsonwebtoken";
 import User from '../models/users.js';
 import cloudinary from '../helper/cloudinaryconfig.js';
 
+
 export const signin = async (req, res) => {
-    const { email, password } = req.body;
-    try {
-        const existingUser = await User.findOne({ email });
-        if (!existingUser) {
-            return res.status(404).json({ message: "User doesn't exist." });
-        }
-        const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
-        if (!isPasswordCorrect) {
-            return res.status(400).json({ message: "Invalid Credentials." });
-        }
-        const token = jwt.sign({ email: existingUser.email, id: existingUser._id }, 'test', { expiresIn: "1h" });
-        res.status(200).json({ result: existingUser, token });
-    } catch (error) {
-        res.status(500).json({ message: 'Something went wrong!' });
-    }
+  const { email, password } = req.body;
+  try {
+      // Find user and check password in parallel
+      const existingUser = await User.findOne({ email }).lean(); // `lean()` for faster read, no mongoose object methods
+      if (!existingUser) {
+          return res.status(404).json({ message: "User doesn't exist." });
+      }
+
+      // Compare password asynchronously
+      const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+      if (!isPasswordCorrect) {
+          return res.status(400).json({ message: "Invalid Credentials." });
+      }
+
+      // Sign JWT token
+      const token = jwt.sign(
+          { email: existingUser.email, id: existingUser._id },
+          process.env.JWT_SECRET || 'test',  // Use a proper secret from env
+          { expiresIn: "1h" }
+      );
+
+      res.status(200).json({ result: existingUser, token });
+  } catch (error) {
+      res.status(500).json({ message: 'Something went wrong!' });
+  }
 };
 
 export const signup = async (req, res) => {
-    const { email, password, firstName, lastName } = req.body;
-    //const picturePath = req.file?.filename; // Ensure that req.file is available
-    const picturePath = await cloudinary.uploader.upload(req.file.path); // Use req.file.path
-    try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: 'User already exists.' });
-        }
+  const { email, password, firstName, lastName } = req.body;
+  try {
+      if (!req.file) {
+          return res.status(400).json({ message: 'Profile picture is required.' });
+      }
 
-        const hashedPassword = await bcrypt.hash(password, 12);
+      // Find if user already exists
+      const existingUser = await User.findOne({ email }).lean();
+      if (existingUser) {
+          return res.status(400).json({ message: 'User already exists.' });
+      }
 
-        const result = await User.create({
-            email,
-            password: hashedPassword,
-            name: `${firstName} ${lastName}`,
-            picturePath: picturePath.secure_url, // Save image path in the database
-        });
-        console.log(result);
+      // Hash password asynchronously with bcrypt
+      const hashedPassword = await bcrypt.hash(password, 12);
 
-        const token = jwt.sign({ email: result.email, id: result._id }, 'test', { expiresIn: '1h' });
-        console.log(token);
-        // In the signup controller
-        res.status(201).json({ result: { ...result, picturePath: picturePath.secure_url }, token });
+      // Upload picture to cloudinary
+      const picturePath = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'user_profiles', // You can add a folder to organize uploads
+          quality: 'auto',  // Optimize image quality
+      });
 
-    } catch (error) {
-        res.status(500).json({ message: 'Something went wrong!' });
-    }
+      // Create new user and save to DB
+      const newUser = new User({
+          email,
+          password: hashedPassword,
+          name: `${firstName} ${lastName}`,
+          picturePath: picturePath.secure_url
+      });
+
+      const result = await newUser.save(); // Saving the new user
+
+      // Generate JWT token
+      const token = jwt.sign(
+          { email: result.email, id: result._id },
+          process.env.JWT_SECRET || 'test',
+          { expiresIn: '1h' }
+      );
+
+      res.status(201).json({ result: result, token });
+  } catch (error) {
+      console.error('Error during signup:', error);
+      res.status(500).json({ message: 'Something went wrong!' });
+  }
 };
 
 
