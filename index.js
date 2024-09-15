@@ -5,7 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import url from 'url';
 import 'dotenv/config';
-
+console.log("hlo");
 import postRoutes from './routes/posts.js';
 import userRoutes from './routes/users.js';
 import newsRoutes from './routes/news.js';
