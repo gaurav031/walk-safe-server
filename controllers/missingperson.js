@@ -11,6 +11,7 @@ export const registerMissingperson = asyncHandler(async(req,res)=>{
         name,age,place,aadhar,description, personreporting
     })
     const result = newMissingperson.save()
+    console.log(result)
     if(result){
         res.status(201).json({
             name:newMissingperson.name,
